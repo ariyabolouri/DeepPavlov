@@ -122,14 +122,30 @@ it is followed by ``softmax`` activation (``sigmoid`` if ``multilabel`` paramete
 BERT for Named Entity Recognition (Sequence Tagging)
 ----------------------------------------------------
 
-Pre-trained BERT model can be used for sequence tagging. Examples of usage of BERT for sequence tagging can be
-found :doc:`here </features/models/ner>`. The module used for tagging is :class:`~deeppavlov.models.bert.bert_ner.BertNerModel`.
-To tag each word representations of the first sub-word elements are extracted. So for each word there is only one vector produced.
-These representations are passed to a dense layer or Bi-RNN layer to produce distribution over tags. There is
-also an optional CRF layer on the top.
+Pre-trained BERT model can be used for sequence tagging. Examples of BERT application to sequence tagging
+can be found :doc:`here </features/models/ner>`. The module used for tagging
+is :class:`~deeppavlov.models.bert.bert_sequence_tagger.BertSequenceTagger`.
+The tags are obtained by applying a dense layer to the representation of
+the first subtoken of each word. There is also an optional CRF layer on the top.
 
 Multilingual BERT model allows to perform zero-shot transfer across languages. To use our 19 tags NER for over a
 hundred languages see :ref:`ner_multi_bert`.
+
+BERT for Morphological Tagging
+------------------------------
+
+Since morphological tagging is also a sequence labeling task, it can be solved in a similar fashion.
+The only difference is that we may use the last subtoken of each word in case word morphology
+is mostly defined by its suffixes, not prefixes (that is the case for most Indo-European languages,
+such as Russian, Spanish, German etc.). See :doc:`also </features/models/morphotagger>`.
+
+BERT for Syntactic Parsing
+--------------------------
+
+You can use BERT for syntactic parsing also. As most modern parsers, we use the biaffine model
+over the embedding layer, which is the output of BERT. The model outputs the index of syntactic
+head and the dependency type for each word. See :doc:`the parser documentation </features/models/syntaxparser>`
+for more information about model performance and algorithm.
 
 
 BERT for Context Question Answering (SQuAD)
@@ -156,6 +172,18 @@ and :class:`~deeppavlov.models.bert.bert_ranker.BertSepRankerPredictor` are for 
 where the task for ranking is to retrieve the best possible response from some provided response base with the help of
 the trained model. Working examples with the trained models are given :doc:`here </features/models/neural_ranking>`.
 Statistics are available :doc:`here </features/overview>`.
+
+BERT for Extractive Summarization
+---------------------------------
+The BERT model was trained on Masked Language Modeling (MLM) and Next Sentence Prediction (NSP) tasks.
+NSP head was trained to detect in ``[CLS] text_a [SEP] text_b [SEP]`` if text_b follows text_a in original document.
+This NSP head can be used to stack sentences from a long document, based on a initial sentence. The first sentence in
+a document can be used as initial one. :class:`~deeppavlov.models.bert.bert_as_summarizer.BertAsSummarizer` relies on 
+pretrained BERT models and does not require training on summarization dataset. 
+We have two configuration files:
+
+- :config:`BertAsSummarizer <summarization/bert_as_summarizer.json>` takes first sentence in document as initialization. 
+- :config:`BertAsSummarizer with init <summarization/bert_as_summarizer_with_init.json>` uses provided initial sentence.
 
 Using custom BERT in DeepPavlov
 -------------------------------

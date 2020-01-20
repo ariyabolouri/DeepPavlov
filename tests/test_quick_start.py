@@ -22,11 +22,10 @@ import requests
 import deeppavlov
 from deeppavlov import build_model
 from deeppavlov.core.commands.utils import parse_config
-from deeppavlov.core.common.paths import get_settings_path
 from deeppavlov.core.data.utils import get_all_elems_from_json
 from deeppavlov.download import deep_download
 from deeppavlov.utils.server import get_server_params
-from deeppavlov.utils.socket import encode, SOCKET_CONFIG_FILENAME
+from deeppavlov.utils.socket import encode
 
 tests_dir = Path(__file__).parent
 test_configs_path = tests_dir / "deeppavlov" / "configs"
@@ -212,7 +211,9 @@ PARAMS = {
         ("squad/squad_bert_infer.json", "squad_bert_infer", ('IP',)): [TWO_ARGUMENTS_INFER_CHECK],
         ("squad/squad.json", "squad_model", ALL_MODES): [TWO_ARGUMENTS_INFER_CHECK],
         ("squad/squad_ru.json", "squad_model_ru", ALL_MODES): [TWO_ARGUMENTS_INFER_CHECK],
-        ("squad/multi_squad_noans.json", "multi_squad_noans", ('IP',)): [TWO_ARGUMENTS_INFER_CHECK]
+        ("squad/multi_squad_noans.json", "multi_squad_noans", ('IP',)): [TWO_ARGUMENTS_INFER_CHECK],
+        ("squad/squad_zh_bert_mult.json", "squad_zh_bert_mult", ALL_MODES): [TWO_ARGUMENTS_INFER_CHECK],
+        ("squad/squad_zh_bert_zh.json", "squad_zh_bert_zh", ALL_MODES): [TWO_ARGUMENTS_INFER_CHECK]
     },
     "seq2seq_go_bot": {
         ("seq2seq_go_bot/bot_kvret_train.json", "seq2seq_go_bot", ('TI',)):
@@ -238,12 +239,14 @@ PARAMS = {
     },
     "morpho_tagger": {
         ("morpho_tagger/UD2.0/morpho_en.json", "morpho_en", ('IP', 'TI')): [ONE_ARGUMENT_INFER_CHECK],
-        ("morpho_tagger/UD2.0/morpho_ru_syntagrus_pymorphy.json", "morpho_tagger_pymorphy", ('IP', 'TI')):
-            [ONE_ARGUMENT_INFER_CHECK],
         ("morpho_tagger/UD2.0/morpho_ru_syntagrus_pymorphy_lemmatize.json", "morpho_tagger_pymorphy", ('IP', 'TI')):
             [ONE_ARGUMENT_INFER_CHECK],
-        ("morpho_tagger/UD2.0/morpho_ru_syntagrus.json", "morpho_tagger_pymorphy", ('IP', 'TI')):
+        ("morpho_tagger/BERT/morpho_ru_syntagrus_bert.json", "morpho_tagger_bert", ('IP', 'TI')):
             [ONE_ARGUMENT_INFER_CHECK]
+    },
+    "syntax_tagger": {
+        ("syntax/syntax_ru_syntagrus_bert.json", "syntax_ru_bert", ('IP', 'TI')): [ONE_ARGUMENT_INFER_CHECK],
+        ("syntax/ru_syntagrus_joint_parsing.json", "syntax_ru_bert", ('IP',)): [ONE_ARGUMENT_INFER_CHECK]
     }
 }
 
@@ -286,8 +289,10 @@ def download_config(config_path):
     # Download referenced config files
     config_references = get_all_elems_from_json(parse_config(config), 'config_path')
     for config_ref in config_references:
-        m_name = config_ref.split('/')[-2]
-        config_ref = '/'.join(config_ref.split('/')[-2:])
+        splitted = config_ref.split("/")
+        first_subdir_index = splitted.index("configs") + 1
+        m_name = config_ref.split('/')[first_subdir_index]
+        config_ref = '/'.join(config_ref.split('/')[first_subdir_index:])
 
         test_configs_path.joinpath(m_name).mkdir(exist_ok=True)
         if not test_configs_path.joinpath(config_ref).exists():
@@ -430,12 +435,11 @@ class TestQuickStart(object):
 
     @staticmethod
     def interact_socket(config_path, socket_type):
-        socket_config_path = get_settings_path() / SOCKET_CONFIG_FILENAME
-
-        socket_params = get_server_params(config_path, socket_config_path)
+        socket_params = get_server_params(config_path)
         model_args_names = socket_params['model_args_names']
 
         host = socket_params['host']
+        host = host.replace('0.0.0.0', '127.0.0.1')
         port = api_port or socket_params['port']
 
         socket_payload = {}
@@ -455,7 +459,7 @@ class TestQuickStart(object):
         p = pexpect.popen_spawn.PopenSpawn(' '.join(args),
                                            timeout=None, logfile=logfile)
         try:
-            p.expect(socket_params['launch_message'])
+            p.expect(socket_params['socket_launch_message'])
             with socket.socket(address_family, socket.SOCK_STREAM) as s:
                 try:
                     s.connect(connect_arg)

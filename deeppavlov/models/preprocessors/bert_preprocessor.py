@@ -201,7 +201,6 @@ class BertNerPreprocessor(Component):
                     tokens_subword.extend(['[MASK]'] * len(subwords))
                 else:
                     tokens_subword.extend(subwords)
-                startofword_markers.extend([token_marker] + [0] * (len(subwords) - 1))
                 if subword_mask_mode == "last":
                     startofword_markers.extend([0] * (len(subwords) - 1) + [token_marker])
                 else:
